@@ -4,7 +4,6 @@ namespace AzureOss\LaravelAzureStorageBlob;
 
 use AzureOss\FlysystemAzureBlobStorage\AzureBlobStorageAdapter;
 use AzureOss\Storage\Blob\BlobServiceClient;
-use AzureOss\Storage\Common\Auth\StorageSharedKeyCredential;
 use Illuminate\Filesystem\FilesystemAdapter;
 use League\Flysystem\Config;
 use League\Flysystem\Filesystem;
@@ -38,7 +37,7 @@ final class AzureStorageBlobAdapter extends FilesystemAdapter
         $this->useDirectPublicUrl = $config['use_direct_public_url'] ?? false;
         $serviceClient = BlobServiceClient::fromConnectionString($config['connection_string']);
         $containerClient = $serviceClient->getContainerClient($config['container']);
-        $this->canProvideTemporaryUrls = $this->useDirectPublicUrl || $containerClient->sharedKeyCredentials instanceof StorageSharedKeyCredential;
+        $this->canProvideTemporaryUrls = $this->useDirectPublicUrl || $containerClient->canGenerateSasUri();
         $adapter = new AzureBlobStorageAdapter($containerClient, $config['prefix'] ?? $config['root'] ?? '', useDirectPublicUrl: $this->useDirectPublicUrl);
 
         parent::__construct(
