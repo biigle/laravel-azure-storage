@@ -17,6 +17,12 @@ use League\Flysystem\UnableToGenerateTemporaryUrl;
  */
 final class AzureStorageBlobAdapter extends FilesystemAdapter
 {
+
+    /**
+     * Whether the configuration of this adapter allows temporary URLs.
+     */
+    public bool $canProvideTemporaryUrls;
+
     /**
      * Set to true to use the direct public URL instead of generating a temporary URL.
      * If true, also acts as a fallback for new temporary URLs if no account credentials
@@ -29,10 +35,11 @@ final class AzureStorageBlobAdapter extends FilesystemAdapter
      */
     public function __construct(array $config)
     {
-        $useDirectPublicUrl = $config['use_direct_public_url'] ?? false;
+        $this->useDirectPublicUrl = $config['use_direct_public_url'] ?? false;
         $serviceClient = BlobServiceClient::fromConnectionString($config['connection_string']);
         $containerClient = $serviceClient->getContainerClient($config['container']);
-        $adapter = new AzureBlobStorageAdapter($containerClient, $config['prefix'] ?? $config['root'] ?? '', useDirectPublicUrl: $useDirectPublicUrl);
+        $this->canProvideTemporaryUrls = $this->useDirectPublicUrl || $containerClient->sharedKeyCredentials instanceof StorageSharedKeyCredential;
+        $adapter = new AzureBlobStorageAdapter($containerClient, $config['prefix'] ?? $config['root'] ?? '', useDirectPublicUrl: $this->useDirectPublicUrl);
 
         parent::__construct(
             new Filesystem($adapter, $config),
@@ -53,7 +60,7 @@ final class AzureStorageBlobAdapter extends FilesystemAdapter
      */
     public function providesTemporaryUrls()
     {
-        return $this->adapter->containerClient->sharedKeyCredentials instanceof StorageSharedKeyCredential || $this->useDirectPublicUrl;
+        return $this->canProvideTemporaryUrls;
     }
 
     /**
